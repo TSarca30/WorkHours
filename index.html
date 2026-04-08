@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>WorkHours</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --card: #1a1a26;
+    --border: #2a2a3d;
+    --accent: #00e5a0;
+    --accent2: #7c3aed;
+    --danger: #ff4757;
+    --warn: #ffa502;
+    --text: #e8e8f0;
+    --muted: #6b6b85;
+    --font-display: 'Syne', sans-serif;
+    --font-mono: 'Space Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-display);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* NOISE TEXTURE */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 0;
+  }
+
+  /* ── LOGIN ── */
+  #loginScreen {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; position: relative; z-index: 1;
+  }
+  .login-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 48px 40px;
+    width: 100%; max-width: 400px;
+    box-shadow: 0 0 80px rgba(0,229,160,0.07), 0 0 0 1px var(--border);
+    animation: fadeUp .5s ease;
+  }
+  .login-logo {
+    font-size: 2rem; font-weight: 800; letter-spacing: -1px;
+    color: var(--accent); margin-bottom: 6px;
+  }
+  .login-sub { color: var(--muted); font-size: .85rem; margin-bottom: 32px; }
+  .field { margin-bottom: 18px; }
+  .field label { display: block; font-size: .75rem; color: var(--muted); margin-bottom: 6px; letter-spacing: .08em; text-transform: uppercase; }
+  .field input {
+    width: 100%; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 16px; color: var(--text);
+    font-family: var(--font-mono); font-size: .9rem; outline: none;
+    transition: border-color .2s;
+  }
+  .field input:focus { border-color: var(--accent); }
+  .btn-primary {
+    width: 100%; padding: 14px; background: var(--accent); color: #000;
+    font-family: var(--font-display); font-weight: 800; font-size: 1rem;
+    border: none; border-radius: 10px; cursor: pointer; letter-spacing: .03em;
+    transition: opacity .2s, transform .1s;
+  }
+  .btn-primary:hover { opacity: .9; transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+  .login-error { color: var(--danger); font-size: .82rem; margin-top: 12px; text-align: center; min-height: 18px; }
+
+  /* ── APP SHELL ── */
+  #app { display: none; position: relative; z-index: 1; }
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 28px; border-bottom: 1px solid var(--border);
+    background: rgba(10,10,15,.8); backdrop-filter: blur(12px);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .topbar-logo { font-size: 1.2rem; font-weight: 800; color: var(--accent); }
+  .topbar-user { display: flex; align-items: center; gap: 12px; }
+  .user-badge {
+    background: var(--accent2); color: #fff; border-radius: 50%;
+    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: .85rem;
+  }
+  .btn-logout {
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    border-radius: 8px; padding: 6px 14px; cursor: pointer; font-family: var(--font-display);
+    font-size: .8rem; transition: all .2s;
+  }
+  .btn-logout:hover { border-color: var(--danger); color: var(--danger); }
+
+  /* TABS */
+  .tabs {
+    display: flex; gap: 4px; padding: 16px 28px;
+    border-bottom: 1px solid var(--border); overflow-x: auto;
+  }
+  .tab {
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    border-radius: 8px; padding: 8px 18px; cursor: pointer; font-family: var(--font-display);
+    font-size: .85rem; white-space: nowrap; transition: all .2s;
+  }
+  .tab.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 700; }
+  .tab:not(.active):hover { border-color: var(--accent); color: var(--accent); }
+
+  /* CONTENT */
+  .content { padding: 28px; max-width: 900px; margin: 0 auto; }
+  .panel { display: none; animation: fadeUp .3s ease; }
+  .panel.active { display: block; }
+
+  /* CARDS */
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 28px; margin-bottom: 20px;
+  }
+  .card-title { font-size: .7rem; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin-bottom: 16px; }
+
+  /* TIMER */
+  .timer-display {
+    font-family: var(--font-mono); font-size: 4.5rem; font-weight: 700;
+    color: var(--accent); text-align: center; letter-spacing: .05em;
+    margin: 24px 0; line-height: 1;
+    text-shadow: 0 0 40px rgba(0,229,160,0.3);
+    transition: color .3s;
+  }
+  .timer-display.running { color: var(--accent); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.7} }
+  .btn-timer {
+    display: block; width: 100%; max-width: 280px; margin: 0 auto;
+    padding: 18px; border-radius: 14px; border: none; cursor: pointer;
+    font-family: var(--font-display); font-weight: 800; font-size: 1.1rem;
+    letter-spacing: .03em; transition: all .2s;
+  }
+  .btn-timer.start { background: var(--accent); color: #000; box-shadow: 0 0 30px rgba(0,229,160,0.25); }
+  .btn-timer.stop { background: var(--danger); color: #fff; box-shadow: 0 0 30px rgba(255,71,87,0.25); }
+  .btn-timer:hover { transform: translateY(-2px); opacity: .92; }
+  .today-stat {
+    display: flex; justify-content: center; gap: 32px; margin-top: 24px;
+    flex-wrap: wrap;
+  }
+  .stat-item { text-align: center; }
+  .stat-val { font-family: var(--font-mono); font-size: 1.4rem; font-weight: 700; color: var(--text); }
+  .stat-lbl { font-size: .7rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-top: 4px; }
+
+  /* RATE */
+  .rate-row { display: flex; gap: 12px; align-items: flex-end; }
+  .rate-row .field { flex: 1; margin-bottom: 0; }
+  .btn-save {
+    background: var(--accent2); color: #fff; border: none; border-radius: 10px;
+    padding: 12px 22px; font-family: var(--font-display); font-weight: 700;
+    cursor: pointer; transition: opacity .2s; white-space: nowrap;
+  }
+  .btn-save:hover { opacity: .85; }
+
+  /* ANALYTICS */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px;
+  }
+  .stat-card .val { font-family: var(--font-mono); font-size: 1.6rem; font-weight: 700; color: var(--accent); }
+  .stat-card .lbl { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-top: 6px; }
+
+  /* MONTH SELECTOR */
+  .month-selector { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .month-selector select {
+    background: var(--surface); border: 1px solid var(--border); color: var(--text);
+    border-radius: 8px; padding: 8px 14px; font-family: var(--font-display); font-size: .85rem; outline: none;
+  }
+
+  /* BAR CHART */
+  .bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 120px; margin-top: 16px; }
+  .bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
+  .bar {
+    width: 100%; background: var(--accent2); border-radius: 4px 4px 0 0;
+    transition: height .4s ease; min-height: 2px; position: relative;
+  }
+  .bar:hover::after {
+    content: attr(data-val);
+    position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+    background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+    padding: 4px 8px; font-size: .7rem; white-space: nowrap; color: var(--text);
+  }
+  .bar-lbl { font-size: .62rem; color: var(--muted); text-align: center; }
+
+  /* PAYMENTS */
+  .payment-row { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 20px; flex-wrap: wrap; }
+  .payment-row .field { flex: 1; min-width: 140px; margin-bottom: 0; }
+
+  /* BALANCE */
+  .balance-box {
+    border-radius: 14px; padding: 24px; text-align: center; margin-bottom: 20px;
+    border: 2px solid;
+  }
+  .balance-box.positive { border-color: var(--accent); background: rgba(0,229,160,.06); }
+  .balance-box.negative { border-color: var(--danger); background: rgba(255,71,87,.06); }
+  .balance-box.neutral { border-color: var(--border); background: var(--surface); }
+  .balance-amount { font-family: var(--font-mono); font-size: 2.8rem; font-weight: 700; margin-bottom: 8px; }
+  .balance-box.positive .balance-amount { color: var(--accent); }
+  .balance-box.negative .balance-amount { color: var(--danger); }
+  .balance-label { font-size: .85rem; color: var(--muted); }
+  .balance-emoji { font-size: 2rem; margin-bottom: 8px; }
+
+  /* TABLE */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+  th { text-align: left; padding: 10px 14px; color: var(--muted); font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; border-bottom: 1px solid var(--border); }
+  td { padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,.04); font-family: var(--font-mono); font-size: .82rem; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,.02); }
+
+  /* EXPORT BTNS */
+  .export-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+  .btn-export {
+    padding: 10px 20px; border-radius: 9px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); cursor: pointer;
+    font-family: var(--font-display); font-size: .82rem; font-weight: 600;
+    transition: all .2s;
+  }
+  .btn-export:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 28px; right: 28px; z-index: 999;
+    background: var(--card); border: 1px solid var(--accent); color: var(--accent);
+    border-radius: 10px; padding: 12px 20px; font-size: .85rem; font-weight: 600;
+    transform: translateY(80px); opacity: 0; transition: all .3s;
+    box-shadow: 0 8px 30px rgba(0,0,0,.4);
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  /* LOADING */
+  .loading { color: var(--muted); text-align: center; padding: 32px; font-size: .9rem; }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+
+  /* EMPTY STATE */
+  .empty { text-align: center; padding: 40px; color: var(--muted); font-size: .9rem; }
+
+  @media(max-width:600px) {
+    .content { padding: 16px; }
+    .timer-display { font-size: 3rem; }
+    .topbar { padding: 14px 16px; }
+    .tabs { padding: 12px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">WorkHours</div>
+    <div class="login-sub">Traccia il tuo lavoro, conosci il tuo valore.</div>
+    <div class="field">
+      <label>Username</label>
+      <input type="text" id="loginUser" placeholder="Fra / Arca" autocomplete="username"/>
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password"/>
+    </div>
+    <button class="btn-primary" onclick="doLogin()">Accedi →</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-logo">WorkHours</div>
+    <div class="topbar-user">
+      <div class="user-badge" id="userBadge">?</div>
+      <span style="font-size:.85rem;color:var(--muted)" id="userLabel"></span>
+      <button class="btn-logout" onclick="logout()">Esci</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('timer',this)">⏱ Timer</button>
+    <button class="tab" onclick="switchTab('analytics',this)">📊 Analytics</button>
+    <button class="tab" onclick="switchTab('payments',this)">💶 Pagamenti</button>
+    <button class="tab" onclick="switchTab('balance',this)">⚖️ Saldo</button>
+  </div>
+
+  <div class="content">
+
+    <!-- TIMER PANEL -->
+    <div class="panel active" id="panel-timer">
+      <div class="card">
+        <div class="card-title">Sessione di Lavoro</div>
+        <div class="timer-display" id="timerDisplay">00:00:00</div>
+        <button class="btn-timer start" id="timerBtn" onclick="toggleTimer()">▶ Inizio Lavoro</button>
+        <div class="today-stat" id="todayStats">
+          <div class="stat-item">
+            <div class="stat-val" id="todayHours">0h 00m</div>
+            <div class="stat-lbl">Oggi</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-val" id="todayEarned">€ 0.00</div>
+            <div class="stat-lbl">Guadagnato oggi</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Tariffa Oraria</div>
+        <div class="rate-row">
+          <div class="field">
+            <label>€ / ora</label>
+            <input type="number" id="rateInput" placeholder="es. 15.00" min="0" step="0.5"/>
+          </div>
+          <button class="btn-save" onclick="saveRate()">Salva</button>
+        </div>
+        <div style="margin-top:12px;font-size:.8rem;color:var(--muted)" id="rateDisplay">Nessuna tariffa impostata</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Sessioni Recenti</div>
+        <div id="recentEntries"><div class="loading">Caricamento...</div></div>
+      </div>
+    </div>
+
+    <!-- ANALYTICS PANEL -->
+    <div class="panel" id="panel-analytics">
+      <div class="month-selector">
+        <label style="font-size:.8rem;color:var(--muted)">Mese:</label>
+        <select id="monthSelect" onchange="renderAnalytics()"></select>
+      </div>
+
+      <div class="stats-grid" id="analyticsStats"></div>
+
+      <div class="card">
+        <div class="card-title">Ore per Giorno</div>
+        <div class="bar-chart" id="barChart"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Registro Completo</div>
+        <div class="table-wrap" id="fullTable"></div>
+        <div class="export-row">
+          <button class="btn-export" onclick="exportPDF()">⬇ Esporta PDF</button>
+          <button class="btn-export" onclick="exportExcel()">⬇ Esporta Excel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAYMENTS PANEL -->
+    <div class="panel" id="panel-payments">
+      <div class="card">
+        <div class="card-title">Aggiungi Pagamento Ricevuto</div>
+        <div class="payment-row">
+          <div class="field">
+            <label>Data</label>
+            <input type="date" id="payDate"/>
+          </div>
+          <div class="field">
+            <label>Importo (€)</label>
+            <input type="number" id="payAmount" placeholder="es. 200.00" step="0.01"/>
+          </div>
+          <div class="field">
+            <label>Nota</label>
+            <input type="text" id="payNote" placeholder="Bonifico, contante..."/>
+          </div>
+          <button class="btn-save" onclick="addPayment()">+ Aggiungi</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Pagamenti Ricevuti</div>
+        <div id="paymentsTable"><div class="loading">Caricamento...</div></div>
+      </div>
+    </div>
+
+    <!-- BALANCE PANEL -->
+    <div class="panel" id="panel-balance">
+      <div class="month-selector">
+        <label style="font-size:.8rem;color:var(--muted)">Mese:</label>
+        <select id="balanceMonthSelect" onchange="renderBalance()"></select>
+      </div>
+      <div id="balanceContent"><div class="loading">Caricamento...</div></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = "https://script.google.com/macros/s/AKfycbxJCsLxObm2vvaud7Xzv_0Lu4-Utidc7xH-XUXe0vqergkQLVchzTzkfl_kUHfn_8tmmA/exec";
+
+let session = null; // { username, sheetName }
+let timerInterval = null;
+let timerStart = null;
+let timerRunning = false;
+let entries = [];
+let payments = [];
+let hourlyRate = 0;
+
+// ── API ───────────────────────────────────────────────
+async function api(data) {
+  const res = await fetch(API, {
+    method: "POST",
+    body: JSON.stringify(data),
+    headers: { "Content-Type": "text/plain" }
+  });
+  return res.json();
+}
+
+// ── LOGIN ─────────────────────────────────────────────
+async function doLogin() {
+  const username = document.getElementById("loginUser").value.trim();
+  const password = document.getElementById("loginPass").value;
+  const errEl = document.getElementById("loginError");
+  errEl.textContent = "";
+  if (!username || !password) { errEl.textContent = "Inserisci username e password."; return; }
+  try {
+    const r = await api({ action: "login", username, password });
+    if (r.ok) {
+      session = { username: r.username, sheetName: r.sheetName };
+      document.getElementById("loginScreen").style.display = "none";
+      document.getElementById("app").style.display = "block";
+      document.getElementById("userBadge").textContent = r.username[0].toUpperCase();
+      document.getElementById("userLabel").textContent = r.username;
+      document.getElementById("payDate").valueAsDate = new Date();
+      populateMonthSelects();
+      loadAll();
+    } else {
+      errEl.textContent = r.error || "Credenziali errate.";
+    }
+  } catch(e) {
+    errEl.textContent = "Errore di connessione.";
+  }
+}
+document.addEventListener("keydown", e => { if(e.key==="Enter" && document.getElementById("loginScreen").style.display!=="none") doLogin(); });
+
+function logout() {
+  session = null; entries = []; payments = []; hourlyRate = 0;
+  stopTimer(false);
+  document.getElementById("loginScreen").style.display = "flex";
+  document.getElementById("app").style.display = "none";
+  document.getElementById("loginUser").value = "";
+  document.getElementById("loginPass").value = "";
+}
+
+// ── LOAD ALL ──────────────────────────────────────────
+async function loadAll() {
+  const [e, p, r] = await Promise.all([
+    api({ action: "getEntries", sheetName: session.sheetName }),
+    api({ action: "getPayments", sheetName: session.sheetName }),
+    api({ action: "getHourlyRate", sheetName: session.sheetName })
+  ]);
+  if (e.ok) entries = e.entries || [];
+  if (p.ok) payments = p.payments || [];
+  if (r.ok) {
+    hourlyRate = parseFloat(r.rate) || 0;
+    document.getElementById("rateInput").value = hourlyRate || "";
+    document.getElementById("rateDisplay").textContent = hourlyRate ? `Tariffa attuale: €${hourlyRate.toFixed(2)}/ora` : "Nessuna tariffa impostata";
+  }
+  renderRecent();
+  renderAnalytics();
+  renderPaymentsTable();
+  renderBalance();
+  updateTodayStats();
+}
+
+// ── TIMER ─────────────────────────────────────────────
+function toggleTimer() {
+  if (!timerRunning) startTimer(); else stopTimer(true);
+}
+
+function startTimer() {
+  timerRunning = true;
+  timerStart = new Date();
+  const btn = document.getElementById("timerBtn");
+  btn.textContent = "⏹ Fine Lavoro";
+  btn.classList.replace("start","stop");
+  document.getElementById("timerDisplay").classList.add("running");
+  timerInterval = setInterval(updateTimerDisplay, 1000);
+}
+
+function stopTimer(save) {
+  if (!timerRunning && !timerInterval) return;
+  clearInterval(timerInterval);
+  timerInterval = null;
+  const btn = document.getElementById("timerBtn");
+  btn.textContent = "▶ Inizio Lavoro";
+  btn.classList.replace("stop","start");
+  document.getElementById("timerDisplay").classList.remove("running");
+  document.getElementById("timerDisplay").textContent = "00:00:00";
+
+  if (save && timerStart) {
+    const end = new Date();
+    const durMin = Math.round((end - timerStart) / 60000);
+    const dateStr = timerStart.toLocaleDateString("it-IT");
+    const startStr = timerStart.toLocaleTimeString("it-IT", { hour:"2-digit", minute:"2-digit" });
+    const endStr = end.toLocaleTimeString("it-IT", { hour:"2-digit", minute:"2-digit" });
+    api({ action: "addEntry", sheetName: session.sheetName, date: dateStr, startTime: startStr, endTime: endStr, durationMinutes: durMin })
+      .then(() => { showToast(`Sessione salvata: ${Math.floor(durMin/60)}h ${durMin%60}m`); loadAll(); });
+  }
+  timerRunning = false;
+  timerStart = null;
+}
+
+function updateTimerDisplay() {
+  if (!timerStart) return;
+  const elapsed = Math.floor((new Date() - timerStart) / 1000);
+  const h = String(Math.floor(elapsed/3600)).padStart(2,"0");
+  const m = String(Math.floor((elapsed%3600)/60)).padStart(2,"0");
+  const s = String(elapsed%60).padStart(2,"0");
+  document.getElementById("timerDisplay").textContent = `${h}:${m}:${s}`;
+  updateTodayStats();
+}
+
+// ── STATS ─────────────────────────────────────────────
+function updateTodayStats() {
+  const today = new Date().toLocaleDateString("it-IT");
+  const todayEntries = entries.filter(e => e.date === today);
+  let totalMin = todayEntries.reduce((a,e) => a + (parseInt(e.durationMinutes)||0), 0);
+  if (timerRunning && timerStart) totalMin += Math.floor((new Date()-timerStart)/60000);
+  const earned = (totalMin/60)*hourlyRate;
+  document.getElementById("todayHours").textContent = `${Math.floor(totalMin/60)}h ${totalMin%60}m`;
+  document.getElementById("todayEarned").textContent = `€ ${earned.toFixed(2)}`;
+}
+
+// ── RATE ──────────────────────────────────────────────
+async function saveRate() {
+  const rate = parseFloat(document.getElementById("rateInput").value);
+  if (isNaN(rate) || rate < 0) { showToast("Inserisci una tariffa valida","error"); return; }
+  await api({ action: "setHourlyRate", sheetName: session.sheetName, rate });
+  hourlyRate = rate;
+  document.getElementById("rateDisplay").textContent = `Tariffa attuale: €${rate.toFixed(2)}/ora`;
+  showToast("Tariffa salvata!");
+  updateTodayStats();
+  renderAnalytics();
+  renderBalance();
+}
+
+// ── RECENT ENTRIES ────────────────────────────────────
+function renderRecent() {
+  const el = document.getElementById("recentEntries");
+  const recent = [...entries].reverse().slice(0, 7);
+  if (!recent.length) { el.innerHTML = '<div class="empty">Nessuna sessione registrata ancora.</div>'; return; }
+  el.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr><th>Data</th><th>Inizio</th><th>Fine</th><th>Durata</th><th>Guadagno</th></tr></thead>
+    <tbody>${recent.map(e => {
+      const dur = parseInt(e.durationMinutes)||0;
+      const earn = ((dur/60)*hourlyRate).toFixed(2);
+      return `<tr><td>${e.date}</td><td>${e.startTime}</td><td>${e.endTime}</td>
+        <td>${Math.floor(dur/60)}h ${dur%60}m</td><td>€ ${earn}</td></tr>`;
+    }).join("")}</tbody></table></div>`;
+}
+
+// ── ANALYTICS ─────────────────────────────────────────
+function populateMonthSelects() {
+  const months = [];
+  const now = new Date();
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    months.push({ val: `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`, label: d.toLocaleDateString("it-IT",{month:"long",year:"numeric"}) });
+  }
+  ["monthSelect","balanceMonthSelect"].forEach(id => {
+    const sel = document.getElementById(id);
+    sel.innerHTML = months.map(m => `<option value="${m.val}">${m.label}</option>`).join("");
+  });
+}
+
+function renderAnalytics() {
+  const sel = document.getElementById("monthSelect");
+  if (!sel) return;
+  const [year, month] = sel.value.split("-").map(Number);
+  const filtered = entries.filter(e => {
+    const parts = e.date.split("/");
+    if (parts.length < 3) return false;
+    return parseInt(parts[2]) === year && parseInt(parts[1]) === month;
+  });
+
+  const totalMin = filtered.reduce((a,e) => a+(parseInt(e.durationMinutes)||0), 0);
+  const totalEarned = (totalMin/60)*hourlyRate;
+  const days = new Set(filtered.map(e=>e.date)).size;
+  const avgMin = days ? Math.round(totalMin/days) : 0;
+
+  document.getElementById("analyticsStats").innerHTML = `
+    <div class="stat-card"><div class="val">${Math.floor(totalMin/60)}h ${totalMin%60}m</div><div class="lbl">Ore Totali</div></div>
+    <div class="stat-card"><div class="val">€ ${totalEarned.toFixed(2)}</div><div class="lbl">Guadagno Lordo</div></div>
+    <div class="stat-card"><div class="val">${days}</div><div class="lbl">Giorni Lavorati</div></div>
+    <div class="stat-card"><div class="val">${Math.floor(avgMin/60)}h ${avgMin%60}m</div><div class="lbl">Media Giornaliera</div></div>
+  `;
+
+  // Bar chart per giorno
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const byDay = {};
+  filtered.forEach(e => {
+    const parts = e.date.split("/");
+    const d = parseInt(parts[0]);
+    byDay[d] = (byDay[d]||0) + (parseInt(e.durationMinutes)||0);
+  });
+  const maxMin = Math.max(1, ...Object.values(byDay));
+  let bars = "";
+  for (let d = 1; d <= daysInMonth; d++) {
+    const min = byDay[d] || 0;
+    const pct = (min/maxMin)*100;
+    const label = `${Math.floor(min/60)}h${min%60}m`;
+    bars += `<div class="bar-wrap">
+      <div class="bar" style="height:${pct}%" data-val="${label}"></div>
+      <div class="bar-lbl">${d}</div>
+    </div>`;
+  }
+  document.getElementById("barChart").innerHTML = bars;
+
+  // Full table
+  if (!filtered.length) {
+    document.getElementById("fullTable").innerHTML = '<div class="empty">Nessuna sessione in questo mese.</div>';
+    return;
+  }
+  document.getElementById("fullTable").innerHTML = `<table>
+    <thead><tr><th>Data</th><th>Inizio</th><th>Fine</th><th>Durata</th><th>Guadagno</th></tr></thead>
+    <tbody>${filtered.map(e => {
+      const dur = parseInt(e.durationMinutes)||0;
+      return `<tr><td>${e.date}</td><td>${e.startTime}</td><td>${e.endTime}</td>
+        <td>${Math.floor(dur/60)}h ${dur%60}m</td><td>€ ${((dur/60)*hourlyRate).toFixed(2)}</td></tr>`;
+    }).join("")}</tbody></table>`;
+}
+
+// ── PAYMENTS ──────────────────────────────────────────
+async function addPayment() {
+  const date = document.getElementById("payDate").value;
+  const amount = parseFloat(document.getElementById("payAmount").value);
+  const note = document.getElementById("payNote").value;
+  if (!date || isNaN(amount)) { showToast("Data e importo obbligatori","error"); return; }
+  const formatted = new Date(date).toLocaleDateString("it-IT");
+  await api({ action: "addPayment", sheetName: session.sheetName, date: formatted, amount, note });
+  document.getElementById("payAmount").value = "";
+  document.getElementById("payNote").value = "";
+  const r = await api({ action: "getPayments", sheetName: session.sheetName });
+  if (r.ok) payments = r.payments || [];
+  renderPaymentsTable();
+  renderBalance();
+  showToast("Pagamento aggiunto!");
+}
+
+function renderPaymentsTable() {
+  const el = document.getElementById("paymentsTable");
+  if (!payments.length) { el.innerHTML = '<div class="empty">Nessun pagamento registrato.</div>'; return; }
+  const total = payments.reduce((a,p) => a+(parseFloat(p.amount)||0), 0);
+  el.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr><th>Data</th><th>Importo</th><th>Nota</th></tr></thead>
+    <tbody>${[...payments].reverse().map(p =>
+      `<tr><td>${p.date}</td><td>€ ${parseFloat(p.amount).toFixed(2)}</td><td>${p.note||"—"}</td></tr>`
+    ).join("")}
+    <tr><td colspan="2" style="font-weight:700;color:var(--accent)">Totale ricevuto</td><td style="font-weight:700;color:var(--accent)">€ ${total.toFixed(2)}</td></tr>
+    </tbody></table></div>`;
+}
+
+// ── BALANCE ───────────────────────────────────────────
+function renderBalance() {
+  const sel = document.getElementById("balanceMonthSelect");
+  if (!sel) return;
+  const [year, month] = sel.value.split("-").map(Number);
+
+  const filteredE = entries.filter(e => {
+    const parts = e.date.split("/");
+    return parts.length >= 3 && parseInt(parts[2])===year && parseInt(parts[1])===month;
+  });
+  const filteredP = payments.filter(p => {
+    const parts = p.date.split("/");
+    return parts.length >= 3 && parseInt(parts[2])===year && parseInt(parts[1])===month;
+  });
+
+  const totalMin = filteredE.reduce((a,e) => a+(parseInt(e.durationMinutes)||0), 0);
+  const earned = (totalMin/60)*hourlyRate;
+  const received = filteredP.reduce((a,p) => a+(parseFloat(p.amount)||0), 0);
+  const diff = received - earned;
+
+  let boxClass = "neutral", emoji = "➖", msg = "In pari";
+  if (diff > 0.01) { boxClass="positive"; emoji="✅"; msg="Sei in credito"; }
+  else if (diff < -0.01) { boxClass="negative"; emoji="⚠️"; msg="Sei in debito"; }
+
+  document.getElementById("balanceContent").innerHTML = `
+    <div class="balance-box ${boxClass}">
+      <div class="balance-emoji">${emoji}</div>
+      <div class="balance-amount">${diff >= 0 ? "+" : ""}€ ${diff.toFixed(2)}</div>
+      <div class="balance-label">${msg}</div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="val" style="color:var(--warn)">€ ${earned.toFixed(2)}</div>
+        <div class="lbl">Dovevi ricevere</div>
+      </div>
+      <div class="stat-card">
+        <div class="val" style="color:var(--accent)">€ ${received.toFixed(2)}</div>
+        <div class="lbl">Hai ricevuto</div>
+      </div>
+      <div class="stat-card">
+        <div class="val">${Math.floor(totalMin/60)}h ${totalMin%60}m</div>
+        <div class="lbl">Ore lavorate</div>
+      </div>
+    </div>
+  `;
+}
+
+// ── EXPORT PDF ────────────────────────────────────────
+function exportPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const sel = document.getElementById("monthSelect");
+  const [year, month] = sel.value.split("-").map(Number);
+  const filtered = entries.filter(e => {
+    const p = e.date.split("/");
+    return p.length>=3 && parseInt(p[2])===year && parseInt(p[1])===month;
+  });
+  const monthLabel = sel.options[sel.selectedIndex].text;
+
+  doc.setFontSize(18); doc.text(`WorkHours — ${session.username}`, 14, 20);
+  doc.setFontSize(12); doc.text(monthLabel, 14, 30);
+  const totalMin = filtered.reduce((a,e)=>a+(parseInt(e.durationMinutes)||0),0);
+  doc.text(`Ore totali: ${Math.floor(totalMin/60)}h ${totalMin%60}m   Guadagno: € ${((totalMin/60)*hourlyRate).toFixed(2)}`, 14, 40);
+
+  let y = 52;
+  doc.setFontSize(10);
+  doc.text("Data", 14, y); doc.text("Inizio", 50, y); doc.text("Fine", 80, y); doc.text("Durata", 110, y); doc.text("€", 150, y);
+  y += 6; doc.line(14, y, 196, y); y += 6;
+
+  filtered.forEach(e => {
+    const dur = parseInt(e.durationMinutes)||0;
+    doc.text(e.date, 14, y);
+    doc.text(e.startTime, 50, y);
+    doc.text(e.endTime, 80, y);
+    doc.text(`${Math.floor(dur/60)}h ${dur%60}m`, 110, y);
+    doc.text(`€ ${((dur/60)*hourlyRate).toFixed(2)}`, 150, y);
+    y += 8;
+    if (y > 270) { doc.addPage(); y = 20; }
+  });
+
+  doc.save(`WorkHours_${session.username}_${sel.value}.pdf`);
+}
+
+// ── EXPORT EXCEL ──────────────────────────────────────
+function exportExcel() {
+  const sel = document.getElementById("monthSelect");
+  const [year, month] = sel.value.split("-").map(Number);
+  const filtered = entries.filter(e => {
+    const p = e.date.split("/");
+    return p.length>=3 && parseInt(p[2])===year && parseInt(p[1])===month;
+  });
+
+  const data = [["Data","Inizio","Fine","Durata (min)","Ore","Guadagno €"]];
+  filtered.forEach(e => {
+    const dur = parseInt(e.durationMinutes)||0;
+    data.push([e.date, e.startTime, e.endTime, dur, +(dur/60).toFixed(2), +((dur/60)*hourlyRate).toFixed(2)]);
+  });
+  const totalMin = filtered.reduce((a,e)=>a+(parseInt(e.durationMinutes)||0),0);
+  data.push(["TOTALE","","","",+(totalMin/60).toFixed(2),+((totalMin/60)*hourlyRate).toFixed(2)]);
+
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Ore lavoro");
+  XLSX.writeFile(wb, `WorkHours_${session.username}_${sel.value}.xlsx`);
+}
+
+// ── TABS ──────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+  btn.classList.add("active");
+  document.getElementById("panel-"+name).classList.add("active");
+  if (name==="analytics") renderAnalytics();
+  if (name==="balance") renderBalance();
+}
+
+// ── TOAST ─────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2800);
+}
+</script>
+</body>
+</html>
