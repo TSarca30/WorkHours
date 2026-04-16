@@ -1,790 +1,1140 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WorkHours</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Clash+Display:wght@400;600;700&family=Cabinet+Grotesk:wght@400;500;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
-  :root {
-    --bg: #0a0a0f;
-    --surface: #12121a;
-    --card: #1a1a26;
-    --border: #2a2a3d;
-    --accent: #00e5a0;
-    --accent2: #7c3aed;
-    --danger: #ff4757;
-    --warn: #ffa502;
-    --text: #e8e8f0;
-    --muted: #6b6b85;
-    --font-display: 'Syne', sans-serif;
-    --font-mono: 'Space Mono', monospace;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font-display);
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
+:root {
+  --bg: #f5f2eb;
+  --bg2: #edeade;
+  --bg3: #e4e0d2;
+  --ink: #1a1814;
+  --ink2: #6b6556;
+  --ink3: #9e9888;
+  --accent: #e8501a;
+  --accent2: #2d6a4f;
+  --gold: #c9a84c;
+  --border: #d4cfc0;
+  --white: #faf8f3;
+  --red: #c0392b;
+  --green: #2d6a4f;
+  --card: #faf8f3;
+  --shadow: 0 2px 16px rgba(26,24,20,0.08);
+  --shadow-lg: 0 8px 40px rgba(26,24,20,0.14);
+  --font-body: 'Cabinet Grotesk', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+  --r: 14px;
+  --r-sm: 8px;
+}
 
-  /* NOISE TEXTURE */
-  body::before {
-    content: '';
-    position: fixed; inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-    pointer-events: none; z-index: 0;
-  }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
 
-  /* ── LOGIN ── */
-  #loginScreen {
-    display: flex; align-items: center; justify-content: center;
-    min-height: 100vh; position: relative; z-index: 1;
-  }
-  .login-box {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 48px 40px;
-    width: 100%; max-width: 400px;
-    box-shadow: 0 0 80px rgba(0,229,160,0.07), 0 0 0 1px var(--border);
-    animation: fadeUp .5s ease;
-  }
-  .login-logo {
-    font-size: 2rem; font-weight: 800; letter-spacing: -1px;
-    color: var(--accent); margin-bottom: 6px;
-  }
-  .login-sub { color: var(--muted); font-size: .85rem; margin-bottom: 32px; }
-  .field { margin-bottom: 18px; }
-  .field label { display: block; font-size: .75rem; color: var(--muted); margin-bottom: 6px; letter-spacing: .08em; text-transform: uppercase; }
-  .field input {
-    width: 100%; background: var(--surface); border: 1px solid var(--border);
-    border-radius: 10px; padding: 12px 16px; color: var(--text);
-    font-family: var(--font-mono); font-size: .9rem; outline: none;
-    transition: border-color .2s;
-  }
-  .field input:focus { border-color: var(--accent); }
-  .btn-primary {
-    width: 100%; padding: 14px; background: var(--accent); color: #000;
-    font-family: var(--font-display); font-weight: 800; font-size: 1rem;
-    border: none; border-radius: 10px; cursor: pointer; letter-spacing: .03em;
-    transition: opacity .2s, transform .1s;
-  }
-  .btn-primary:hover { opacity: .9; transform: translateY(-1px); }
-  .btn-primary:active { transform: translateY(0); }
-  .login-error { color: var(--danger); font-size: .82rem; margin-top: 12px; text-align: center; min-height: 18px; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  font-size: 15px;
+}
 
-  /* ── APP SHELL ── */
-  #app { display: none; position: relative; z-index: 1; }
-  .topbar {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 18px 28px; border-bottom: 1px solid var(--border);
-    background: rgba(10,10,15,.8); backdrop-filter: blur(12px);
-    position: sticky; top: 0; z-index: 100;
-  }
-  .topbar-logo { font-size: 1.2rem; font-weight: 800; color: var(--accent); }
-  .topbar-user { display: flex; align-items: center; gap: 12px; }
-  .user-badge {
-    background: var(--accent2); color: #fff; border-radius: 50%;
-    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
-    font-weight: 700; font-size: .85rem;
-  }
-  .btn-logout {
-    background: transparent; border: 1px solid var(--border); color: var(--muted);
-    border-radius: 8px; padding: 6px 14px; cursor: pointer; font-family: var(--font-display);
-    font-size: .8rem; transition: all .2s;
-  }
-  .btn-logout:hover { border-color: var(--danger); color: var(--danger); }
+/* ── SCREENS ── */
+.screen { display: none; }
+.screen.active { display: block; }
 
-  /* TABS */
-  .tabs {
-    display: flex; gap: 4px; padding: 16px 28px;
-    border-bottom: 1px solid var(--border); overflow-x: auto;
-  }
-  .tab {
-    background: transparent; border: 1px solid var(--border); color: var(--muted);
-    border-radius: 8px; padding: 8px 18px; cursor: pointer; font-family: var(--font-display);
-    font-size: .85rem; white-space: nowrap; transition: all .2s;
-  }
-  .tab.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 700; }
-  .tab:not(.active):hover { border-color: var(--accent); color: var(--accent); }
+/* ── LOGIN ── */
+#loginScreen {
+  min-height: 100vh;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: var(--ink);
+  position: relative;
+  overflow: hidden;
+}
+#loginScreen.active { display: flex; }
 
-  /* CONTENT */
-  .content { padding: 28px; max-width: 900px; margin: 0 auto; }
-  .panel { display: none; animation: fadeUp .3s ease; }
-  .panel.active { display: block; }
+#loginScreen::before {
+  content: '';
+  position: absolute;
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(232,80,26,0.18) 0%, transparent 70%);
+  top: -200px; right: -200px;
+  border-radius: 50%;
+}
+#loginScreen::after {
+  content: '';
+  position: absolute;
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(45,106,79,0.15) 0%, transparent 70%);
+  bottom: -150px; left: -100px;
+  border-radius: 50%;
+}
 
-  /* CARDS */
-  .card {
-    background: var(--card); border: 1px solid var(--border);
-    border-radius: 16px; padding: 28px; margin-bottom: 20px;
-  }
-  .card-title { font-size: .7rem; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin-bottom: 16px; }
+.login-box {
+  background: var(--card);
+  border-radius: 24px;
+  padding: 48px 44px;
+  width: 420px;
+  position: relative;
+  z-index: 2;
+  box-shadow: var(--shadow-lg);
+  animation: slideUp 0.5s cubic-bezier(.16,1,.3,1);
+}
 
-  /* TIMER */
-  .timer-display {
-    font-family: var(--font-mono); font-size: 4.5rem; font-weight: 700;
-    color: var(--accent); text-align: center; letter-spacing: .05em;
-    margin: 24px 0; line-height: 1;
-    text-shadow: 0 0 40px rgba(0,229,160,0.3);
-    transition: color .3s;
-  }
-  .timer-display.running { color: var(--accent); animation: pulse 2s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.7} }
-  .btn-timer {
-    display: block; width: 100%; max-width: 280px; margin: 0 auto;
-    padding: 18px; border-radius: 14px; border: none; cursor: pointer;
-    font-family: var(--font-display); font-weight: 800; font-size: 1.1rem;
-    letter-spacing: .03em; transition: all .2s;
-  }
-  .btn-timer.start { background: var(--accent); color: #000; box-shadow: 0 0 30px rgba(0,229,160,0.25); }
-  .btn-timer.stop { background: var(--danger); color: #fff; box-shadow: 0 0 30px rgba(255,71,87,0.25); }
-  .btn-timer:hover { transform: translateY(-2px); opacity: .92; }
-  .today-stat {
-    display: flex; justify-content: center; gap: 32px; margin-top: 24px;
-    flex-wrap: wrap;
-  }
-  .stat-item { text-align: center; }
-  .stat-val { font-family: var(--font-mono); font-size: 1.4rem; font-weight: 700; color: var(--text); }
-  .stat-lbl { font-size: .7rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-top: 4px; }
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
-  /* RATE */
-  .rate-row { display: flex; gap: 12px; align-items: flex-end; }
-  .rate-row .field { flex: 1; margin-bottom: 0; }
-  .btn-save {
-    background: var(--accent2); color: #fff; border: none; border-radius: 10px;
-    padding: 12px 22px; font-family: var(--font-display); font-weight: 700;
-    cursor: pointer; transition: opacity .2s; white-space: nowrap;
-  }
-  .btn-save:hover { opacity: .85; }
+.login-logo {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+.login-logo span { color: var(--accent); }
 
-  /* ANALYTICS */
-  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
-  .stat-card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 12px; padding: 20px;
-  }
-  .stat-card .val { font-family: var(--font-mono); font-size: 1.6rem; font-weight: 700; color: var(--accent); }
-  .stat-card .lbl { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-top: 6px; }
+.login-sub {
+  color: var(--ink2);
+  font-size: 14px;
+  margin-bottom: 36px;
+}
 
-  /* MONTH SELECTOR */
-  .month-selector { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
-  .month-selector select {
-    background: var(--surface); border: 1px solid var(--border); color: var(--text);
-    border-radius: 8px; padding: 8px 14px; font-family: var(--font-display); font-size: .85rem; outline: none;
-  }
+.form-group { margin-bottom: 18px; }
 
-  /* BAR CHART */
-  .bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 120px; margin-top: 16px; }
-  .bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
-  .bar {
-    width: 100%; background: var(--accent2); border-radius: 4px 4px 0 0;
-    transition: height .4s ease; min-height: 2px; position: relative;
-  }
-  .bar:hover::after {
-    content: attr(data-val);
-    position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
-    background: var(--card); border: 1px solid var(--border); border-radius: 6px;
-    padding: 4px 8px; font-size: .7rem; white-space: nowrap; color: var(--text);
-  }
-  .bar-lbl { font-size: .62rem; color: var(--muted); text-align: center; }
+.form-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--ink2);
+  margin-bottom: 7px;
+}
 
-  /* PAYMENTS */
-  .payment-row { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 20px; flex-wrap: wrap; }
-  .payment-row .field { flex: 1; min-width: 140px; margin-bottom: 0; }
+.form-input {
+  width: 100%;
+  padding: 13px 16px;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.form-input:focus { border-color: var(--accent); }
 
-  /* BALANCE */
-  .balance-box {
-    border-radius: 14px; padding: 24px; text-align: center; margin-bottom: 20px;
-    border: 2px solid;
-  }
-  .balance-box.positive { border-color: var(--accent); background: rgba(0,229,160,.06); }
-  .balance-box.negative { border-color: var(--danger); background: rgba(255,71,87,.06); }
-  .balance-box.neutral { border-color: var(--border); background: var(--surface); }
-  .balance-amount { font-family: var(--font-mono); font-size: 2.8rem; font-weight: 700; margin-bottom: 8px; }
-  .balance-box.positive .balance-amount { color: var(--accent); }
-  .balance-box.negative .balance-amount { color: var(--danger); }
-  .balance-label { font-size: .85rem; color: var(--muted); }
-  .balance-emoji { font-size: 2rem; margin-bottom: 8px; }
+.btn-login {
+  width: 100%;
+  padding: 14px;
+  background: var(--ink);
+  color: var(--card);
+  border: none;
+  border-radius: var(--r-sm);
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-top: 6px;
+}
+.btn-login:hover { background: var(--accent); transform: translateY(-1px); }
+.btn-login:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
-  /* TABLE */
-  .table-wrap { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; font-size: .85rem; }
-  th { text-align: left; padding: 10px 14px; color: var(--muted); font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; border-bottom: 1px solid var(--border); }
-  td { padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,.04); font-family: var(--font-mono); font-size: .82rem; }
-  tr:last-child td { border-bottom: none; }
-  tr:hover td { background: rgba(255,255,255,.02); }
+.login-error {
+  color: var(--red);
+  font-size: 13px;
+  margin-top: 12px;
+  text-align: center;
+  min-height: 20px;
+}
 
-  /* EXPORT BTNS */
-  .export-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
-  .btn-export {
-    padding: 10px 20px; border-radius: 9px; border: 1px solid var(--border);
-    background: var(--surface); color: var(--text); cursor: pointer;
-    font-family: var(--font-display); font-size: .82rem; font-weight: 600;
-    transition: all .2s;
-  }
-  .btn-export:hover { border-color: var(--accent); color: var(--accent); }
+/* ── APP LAYOUT ── */
+#appScreen {
+  display: none;
+  min-height: 100vh;
+}
+#appScreen.active { display: flex; }
 
-  /* TOAST */
-  .toast {
-    position: fixed; bottom: 28px; right: 28px; z-index: 999;
-    background: var(--card); border: 1px solid var(--accent); color: var(--accent);
-    border-radius: 10px; padding: 12px 20px; font-size: .85rem; font-weight: 600;
-    transform: translateY(80px); opacity: 0; transition: all .3s;
-    box-shadow: 0 8px 30px rgba(0,0,0,.4);
-  }
-  .toast.show { transform: translateY(0); opacity: 1; }
+.sidebar {
+  width: 220px;
+  background: var(--ink);
+  min-height: 100vh;
+  position: fixed;
+  top: 0; left: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 28px 16px;
+  z-index: 50;
+}
 
-  /* LOADING */
-  .loading { color: var(--muted); text-align: center; padding: 32px; font-size: .9rem; }
+.sidebar-logo {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--card);
+  letter-spacing: -0.5px;
+  margin-bottom: 2px;
+}
+.sidebar-logo span { color: var(--accent); }
 
-  /* ANIMATIONS */
-  @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+.sidebar-user {
+  font-size: 12px;
+  color: rgba(255,255,255,0.4);
+  margin-bottom: 32px;
+  font-family: var(--font-mono);
+}
 
-  /* EMPTY STATE */
-  .empty { text-align: center; padding: 40px; color: var(--muted); font-size: .9rem; }
+.nav-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.3);
+  padding: 0 10px;
+  margin-bottom: 6px;
+}
 
-  @media(max-width:600px) {
-    .content { padding: 16px; }
-    .timer-display { font-size: 3rem; }
-    .topbar { padding: 14px 16px; }
-    .tabs { padding: 12px 16px; }
-  }
+.nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  background: none;
+  border: none;
+  border-radius: var(--r-sm);
+  color: rgba(255,255,255,0.55);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s;
+  text-align: left;
+  margin-bottom: 2px;
+}
+.nav-btn:hover { background: rgba(255,255,255,0.07); color: white; }
+.nav-btn.active { background: var(--accent); color: white; }
+
+.nav-icon { font-size: 16px; width: 20px; text-align: center; }
+
+.sidebar-bottom {
+  margin-top: auto;
+}
+
+.balance-pill {
+  background: rgba(255,255,255,0.06);
+  border-radius: var(--r-sm);
+  padding: 12px 14px;
+  margin-bottom: 16px;
+}
+.balance-pill-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+  margin-bottom: 4px;
+}
+.balance-pill-value {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 500;
+  color: white;
+}
+.balance-pill-value.pos { color: #6fcf97; }
+.balance-pill-value.neg { color: #eb5757; }
+
+.btn-logout {
+  width: 100%;
+  padding: 9px;
+  background: rgba(255,255,255,0.06);
+  border: none;
+  border-radius: var(--r-sm);
+  color: rgba(255,255,255,0.45);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.btn-logout:hover { background: rgba(255,255,255,0.12); color: white; }
+
+.main {
+  margin-left: 220px;
+  flex: 1;
+  padding: 36px 40px;
+  max-width: calc(100vw - 220px);
+}
+
+/* ── PAGE HEADER ── */
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+.page-title { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+.page-sub { color: var(--ink2); font-size: 14px; margin-top: 2px; }
+
+/* ── CARDS ── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 24px;
+  box-shadow: var(--shadow);
+}
+
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+
+/* ── STAT CARD ── */
+.stat {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 18px 20px;
+}
+.stat-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--ink2);
+  margin-bottom: 6px;
+}
+.stat-value {
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.stat-value.accent { color: var(--accent); }
+.stat-value.green { color: var(--green); }
+.stat-value.red { color: var(--red); }
+.stat-value.gold { color: var(--gold); }
+
+/* ── TIMER ── */
+.timer-display {
+  font-family: var(--font-mono);
+  font-size: 72px;
+  font-weight: 500;
+  text-align: center;
+  color: var(--ink);
+  letter-spacing: 2px;
+  padding: 16px 0 8px;
+  transition: color 0.3s;
+}
+.timer-display.running { color: var(--accent); }
+
+.timer-earning {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 20px;
+  color: var(--green);
+  margin-bottom: 24px;
+  min-height: 28px;
+}
+
+.btn-timer {
+  width: 100%;
+  padding: 18px;
+  border: none;
+  border-radius: var(--r);
+  font-family: var(--font-body);
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(.16,1,.3,1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.btn-timer.start {
+  background: var(--ink);
+  color: var(--card);
+}
+.btn-timer.start:hover {
+  background: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(232,80,26,0.3);
+}
+.btn-timer.stop {
+  background: var(--accent);
+  color: white;
+}
+.btn-timer.stop:hover {
+  background: #c73d0f;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(232,80,26,0.35);
+}
+
+/* ── INPUTS ── */
+.input-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--ink2);
+  margin-bottom: 6px;
+}
+.input-field, .select-field {
+  width: 100%;
+  padding: 11px 14px;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.input-field:focus, .select-field:focus { border-color: var(--accent); }
+.form-group-inner { margin-bottom: 14px; }
+
+/* ── BUTTONS ── */
+.btn {
+  padding: 9px 18px;
+  border-radius: var(--r-sm);
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  transition: all 0.13s;
+}
+.btn-primary { background: var(--ink); color: white; }
+.btn-primary:hover { background: var(--accent); }
+.btn-secondary { background: var(--bg2); color: var(--ink); border: 1px solid var(--border); }
+.btn-secondary:hover { border-color: var(--ink); }
+.btn-danger { background: rgba(192,57,43,0.08); color: var(--red); border: 1px solid rgba(192,57,43,0.2); }
+.btn-danger:hover { background: rgba(192,57,43,0.15); }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+
+/* ── TABLE ── */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th {
+  text-align: left;
+  padding: 8px 14px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--ink2);
+  border-bottom: 1px solid var(--border);
+}
+td {
+  padding: 11px 14px;
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+  font-size: 13.5px;
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--bg); }
+.td-mono { font-family: var(--font-mono); font-size: 13px; }
+
+/* ── BADGE ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.badge-green { background: rgba(45,106,79,0.1); color: var(--green); }
+.badge-red { background: rgba(192,57,43,0.1); color: var(--red); }
+.badge-gold { background: rgba(201,168,76,0.12); color: var(--gold); }
+
+/* ── CREDIT BOX ── */
+.credit-box {
+  border-radius: var(--r);
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+}
+.credit-box.pos { background: rgba(45,106,79,0.07); border: 1px solid rgba(45,106,79,0.2); }
+.credit-box.neg { background: rgba(192,57,43,0.07); border: 1px solid rgba(192,57,43,0.2); }
+.credit-label { font-size: 12px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 4px; }
+.credit-amount { font-family: var(--font-mono); font-size: 32px; font-weight: 500; }
+
+/* ── STATUS ── */
+.status-dot {
+  display: inline-block;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+.status-dot.green { background: var(--green); }
+.status-dot.pulse { animation: pulse 1.2s ease-in-out infinite; background: var(--accent); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* ── SECTION LABEL ── */
+.section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--ink2);
+  margin-bottom: 14px;
+}
+
+.divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+/* ── SESSION ITEM ── */
+.session-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 14px;
+  background: var(--bg);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  margin-bottom: 6px;
+}
+
+/* ── EMPTY ── */
+.empty {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--ink2);
+}
+.empty-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.4; }
+
+/* ── CONFIG BANNER ── */
+.config-banner {
+  background: var(--ink);
+  color: white;
+  border-radius: var(--r);
+  padding: 18px 22px;
+  margin-bottom: 24px;
+  font-size: 14px;
+  line-height: 1.6;
+  display: none;
+}
+.config-banner.show { display: block; }
+.config-banner code {
+  background: rgba(255,255,255,0.12);
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+/* ── LOADING ── */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  flex-direction: column;
+  gap: 16px;
+}
+.loading-spinner {
+  width: 36px; height: 36px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed;
+  bottom: 28px; right: 28px;
+  background: var(--ink);
+  color: white;
+  padding: 12px 20px;
+  border-radius: var(--r-sm);
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 999;
+  transform: translateY(80px);
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(.16,1,.3,1);
+  pointer-events: none;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.success { border-left: 3px solid var(--green); }
+.toast.error { border-left: 3px solid var(--red); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+  .sidebar { width: 100%; min-height: auto; position: relative; flex-direction: row; flex-wrap: wrap; padding: 16px; }
+  .main { margin-left: 0; max-width: 100vw; padding: 20px; }
+  #appScreen.active { flex-direction: column; }
+  .grid2, .grid3, .grid4 { grid-template-columns: 1fr; }
+  .timer-display { font-size: 48px; }
+}
 </style>
 </head>
 <body>
 
-<!-- LOGIN -->
-<div id="loginScreen">
+<!-- LOADING -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <div style="font-size:14px;color:var(--ink2)">Caricamento...</div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ══════════════════════════════ LOGIN ══════════════════════════════ -->
+<div id="loginScreen" class="screen">
   <div class="login-box">
-    <div class="login-logo">WorkHours</div>
-    <div class="login-sub">Traccia il tuo lavoro, conosci il tuo valore.</div>
-    <div class="field">
-      <label>Username</label>
-      <input type="text" id="loginUser" placeholder="Fra / Arca" autocomplete="username"/>
+    <div class="login-logo">Work<span>Hours</span></div>
+    <div class="login-sub">Accedi per tracciare le tue ore</div>
+
+    <div class="config-banner" id="configBanner">
+      ⚙️ <strong>Configura prima Google Sheets:</strong><br>
+      Apri questo file in un editor di testo e modifica le variabili nella sezione <code>CONFIG</code> in cima allo script.
     </div>
-    <div class="field">
-      <label>Password</label>
-      <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password"/>
+
+    <div class="form-group">
+      <label class="form-label">Nome utente</label>
+      <input class="form-input" type="text" id="loginUser" placeholder="Fra oppure Arca" autocomplete="username">
     </div>
-    <button class="btn-primary" onclick="doLogin()">Accedi →</button>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input class="form-input" type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn-login" id="loginBtn" onclick="doLogin()">Accedi</button>
     <div class="login-error" id="loginError"></div>
   </div>
 </div>
 
-<!-- APP -->
-<div id="app">
-  <div class="topbar">
-    <div class="topbar-logo">WorkHours</div>
-    <div class="topbar-user">
-      <div class="user-badge" id="userBadge">?</div>
-      <span style="font-size:.85rem;color:var(--muted)" id="userLabel"></span>
-      <button class="btn-logout" onclick="logout()">Esci</button>
+<!-- ══════════════════════════════ APP ══════════════════════════════ -->
+<div id="appScreen" class="screen">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div>
+      <div class="sidebar-logo">Work<span>Hours</span></div>
+      <div class="sidebar-user" id="sidebarUser">—</div>
     </div>
-  </div>
 
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('timer',this)">⏱ Timer</button>
-    <button class="tab" onclick="switchTab('analytics',this)">📊 Analytics</button>
-    <button class="tab" onclick="switchTab('payments',this)">💶 Pagamenti</button>
-    <button class="tab" onclick="switchTab('balance',this)">⚖️ Saldo</button>
-  </div>
+    <div class="nav-label">Menu</div>
+    <button class="nav-btn active" onclick="showPage('timer', this)"><span class="nav-icon">⏱</span> Timer</button>
+    <button class="nav-btn" onclick="showPage('sessions', this)"><span class="nav-icon">📋</span> Sessioni</button>
+    <button class="nav-btn" onclick="showPage('payments', this)"><span class="nav-icon">💶</span> Pagamenti</button>
+    <button class="nav-btn" onclick="showPage('analytics', this)"><span class="nav-icon">📊</span> Analytics</button>
+    <button class="nav-btn" onclick="showPage('settings', this)"><span class="nav-icon">⚙️</span> Impostazioni</button>
 
-  <div class="content">
+    <div class="sidebar-bottom">
+      <div class="balance-pill">
+        <div class="balance-pill-label">Saldo totale</div>
+        <div class="balance-pill-value" id="sidebarBalance">€0.00</div>
+      </div>
+      <button class="btn-logout" onclick="logout()">← Esci</button>
+    </div>
+  </aside>
 
-    <!-- TIMER PANEL -->
-    <div class="panel active" id="panel-timer">
-      <div class="card">
-        <div class="card-title">Sessione di Lavoro</div>
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- ── TIMER PAGE ── -->
+    <div id="page-timer" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Timer</div>
+          <div class="page-sub">Traccia le tue ore in tempo reale</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:20px">
+        <div id="timerStatus" style="text-align:center;font-size:12px;color:var(--ink2);margin-bottom:4px;min-height:18px"></div>
         <div class="timer-display" id="timerDisplay">00:00:00</div>
-        <button class="btn-timer start" id="timerBtn" onclick="toggleTimer()">▶ Inizio Lavoro</button>
-        <div class="today-stat" id="todayStats">
-          <div class="stat-item">
-            <div class="stat-val" id="todayHours">0h 00m</div>
-            <div class="stat-lbl">Oggi</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-val" id="todayEarned">€ 0.00</div>
-            <div class="stat-lbl">Guadagnato oggi</div>
-          </div>
+        <div class="timer-earning" id="timerEarning"></div>
+        <div class="form-group-inner" id="timerNoteWrap" style="display:none;margin-bottom:16px">
+          <label class="input-label">Nota (opzionale)</label>
+          <input class="input-field" id="timerNote" placeholder="Es: riunione, sviluppo, chiamata...">
         </div>
+        <button class="btn-timer start" id="timerBtn" onclick="toggleTimer()">▶ Inizio lavoro</button>
       </div>
 
-      <div class="card">
-        <div class="card-title">Tariffa Oraria</div>
-        <div class="rate-row">
-          <div class="field">
-            <label>€ / ora</label>
-            <input type="number" id="rateInput" placeholder="es. 15.00" min="0" step="0.5"/>
-          </div>
-          <button class="btn-save" onclick="saveRate()">Salva</button>
-        </div>
-        <div style="margin-top:12px;font-size:.8rem;color:var(--muted)" id="rateDisplay">Nessuna tariffa impostata</div>
+      <div class="grid3" style="margin-bottom:20px">
+        <div class="stat"><div class="stat-label">Sessioni oggi</div><div class="stat-value" id="todaySessions">0</div></div>
+        <div class="stat"><div class="stat-label">Ore oggi</div><div class="stat-value accent" id="todayHours">0h 0m</div></div>
+        <div class="stat"><div class="stat-label">Guadagno oggi</div><div class="stat-value green" id="todayEarned">€0.00</div></div>
       </div>
 
-      <div class="card">
-        <div class="card-title">Sessioni Recenti</div>
-        <div id="recentEntries"><div class="loading">Caricamento...</div></div>
-      </div>
+      <div class="section-label" id="todaySessionsLabel" style="display:none">Sessioni di oggi</div>
+      <div id="todaySessionsList"></div>
     </div>
 
-    <!-- ANALYTICS PANEL -->
-    <div class="panel" id="panel-analytics">
-      <div class="month-selector">
-        <label style="font-size:.8rem;color:var(--muted)">Mese:</label>
-        <select id="monthSelect" onchange="renderAnalytics()"></select>
+    <!-- ── SESSIONS PAGE ── -->
+    <div id="page-sessions" class="page" style="display:none">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Storico sessioni</div>
+          <div class="page-sub">Tutte le tue ore registrate</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <select class="select-field" id="sessionsMonthFilter" onchange="renderSessions()" style="width:auto;padding:8px 12px"></select>
+          <button class="btn btn-secondary" onclick="exportPDF()">📄 PDF</button>
+          <button class="btn btn-secondary" onclick="exportExcel()">📊 Excel</button>
+        </div>
       </div>
 
-      <div class="stats-grid" id="analyticsStats"></div>
-
-      <div class="card">
-        <div class="card-title">Ore per Giorno</div>
-        <div class="bar-chart" id="barChart"></div>
+      <div class="grid4" style="margin-bottom:20px">
+        <div class="stat"><div class="stat-label">Sessioni</div><div class="stat-value" id="sessMonth">0</div></div>
+        <div class="stat"><div class="stat-label">Ore totali</div><div class="stat-value accent" id="sessHours">0h 0m</div></div>
+        <div class="stat"><div class="stat-label">Guadagno atteso</div><div class="stat-value green" id="sessEarned">€0.00</div></div>
+        <div class="stat"><div class="stat-label">Saldo mese</div><div class="stat-value" id="sessBalance">€0.00</div></div>
       </div>
 
       <div class="card">
-        <div class="card-title">Registro Completo</div>
-        <div class="table-wrap" id="fullTable"></div>
-        <div class="export-row">
-          <button class="btn-export" onclick="exportPDF()">⬇ Esporta PDF</button>
-          <button class="btn-export" onclick="exportExcel()">⬇ Esporta Excel</button>
+        <div class="table-wrap" id="sessionsTable">
+          <div class="empty"><div class="empty-icon">📋</div>Nessuna sessione questo mese</div>
         </div>
       </div>
     </div>
 
-    <!-- PAYMENTS PANEL -->
-    <div class="panel" id="panel-payments">
-      <div class="card">
-        <div class="card-title">Aggiungi Pagamento Ricevuto</div>
-        <div class="payment-row">
-          <div class="field">
-            <label>Data</label>
-            <input type="date" id="payDate"/>
+    <!-- ── PAYMENTS PAGE ── -->
+    <div id="page-payments" class="page" style="display:none">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Pagamenti</div>
+          <div class="page-sub">Crediti e debiti in un colpo d'occhio</div>
+        </div>
+        <button class="btn btn-primary" onclick="togglePaymentForm()">+ Aggiungi pagamento</button>
+      </div>
+
+      <div class="card" id="paymentForm" style="display:none;margin-bottom:20px">
+        <div class="section-label">Nuovo pagamento</div>
+        <div class="grid2">
+          <div class="form-group-inner">
+            <label class="input-label">Importo (€)</label>
+            <input class="input-field" type="number" id="payAmount" placeholder="0.00">
           </div>
-          <div class="field">
-            <label>Importo (€)</label>
-            <input type="number" id="payAmount" placeholder="es. 200.00" step="0.01"/>
+          <div class="form-group-inner">
+            <label class="input-label">Data</label>
+            <input class="input-field" type="date" id="payDate">
           </div>
-          <div class="field">
-            <label>Nota</label>
-            <input type="text" id="payNote" placeholder="Bonifico, contante..."/>
+          <div class="form-group-inner">
+            <label class="input-label">Metodo</label>
+            <select class="select-field" id="payMethod">
+              <option>Bonifico</option><option>Contanti</option><option>PayPal</option><option>Satispay</option><option>Altro</option>
+            </select>
           </div>
-          <button class="btn-save" onclick="addPayment()">+ Aggiungi</button>
+          <div class="form-group-inner">
+            <label class="input-label">Note</label>
+            <input class="input-field" id="payNote" placeholder="Es: acconto maggio...">
+          </div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary" onclick="savePayment()">Salva</button>
+          <button class="btn btn-secondary" onclick="togglePaymentForm()">Annulla</button>
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-title">Pagamenti Ricevuti</div>
-        <div id="paymentsTable"><div class="loading">Caricamento...</div></div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+        <div class="section-label" style="margin:0">Mese</div>
+        <select class="select-field" id="paymentsMonthFilter" onchange="renderPayments()" style="width:auto;padding:8px 12px"></select>
+      </div>
+
+      <div class="grid3" style="margin-bottom:16px">
+        <div class="stat"><div class="stat-label">Ore lavorate</div><div class="stat-value accent" id="payHours">0h 0m</div></div>
+        <div class="stat"><div class="stat-label">Guadagno atteso</div><div class="stat-value gold" id="payExpected">€0.00</div></div>
+        <div class="stat"><div class="stat-label">Pagato</div><div class="stat-value green" id="payReceived">€0.00</div></div>
+      </div>
+
+      <div id="payCreditBox"></div>
+      <div class="divider"></div>
+
+      <div class="section-label">Lista pagamenti</div>
+      <div class="card" id="paymentsTable">
+        <div class="empty"><div class="empty-icon">💳</div>Nessun pagamento questo mese</div>
       </div>
     </div>
 
-    <!-- BALANCE PANEL -->
-    <div class="panel" id="panel-balance">
-      <div class="month-selector">
-        <label style="font-size:.8rem;color:var(--muted)">Mese:</label>
-        <select id="balanceMonthSelect" onchange="renderBalance()"></select>
+    <!-- ── ANALYTICS PAGE ── -->
+    <div id="page-analytics" class="page" style="display:none">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Analytics</div>
+          <div class="page-sub">Le tue performance nel tempo</div>
+        </div>
+        <select class="select-field" id="analyticsYear" onchange="renderAnalytics()" style="width:auto;padding:8px 12px"></select>
       </div>
-      <div id="balanceContent"><div class="loading">Caricamento...</div></div>
+
+      <div class="grid4" style="margin-bottom:20px">
+        <div class="stat"><div class="stat-label">Sessioni totali</div><div class="stat-value" id="anTotSess">0</div></div>
+        <div class="stat"><div class="stat-label">Ore totali</div><div class="stat-value accent" id="anTotHours">0h</div></div>
+        <div class="stat"><div class="stat-label">Guadagno atteso</div><div class="stat-value green" id="anTotEarned">€0</div></div>
+        <div class="stat"><div class="stat-label">Media mensile</div><div class="stat-value gold" id="anAvgMonth">€0</div></div>
+      </div>
+
+      <div class="grid2" style="margin-bottom:20px">
+        <div class="card">
+          <div class="section-label">Ore lavorate per mese</div>
+          <canvas id="chartHours" height="200"></canvas>
+        </div>
+        <div class="card">
+          <div class="section-label">Guadagno atteso vs ricevuto (€)</div>
+          <canvas id="chartMoney" height="200"></canvas>
+        </div>
+      </div>
     </div>
 
-  </div>
+    <!-- ── SETTINGS PAGE ── -->
+    <div id="page-settings" class="page" style="display:none">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Impostazioni</div>
+          <div class="page-sub">Configura la tua tariffa oraria</div>
+        </div>
+      </div>
+
+      <div class="card" style="max-width:480px;margin-bottom:20px">
+        <div class="section-label">Tariffa oraria</div>
+        <div class="form-group-inner">
+          <label class="input-label">€ per ora</label>
+          <input class="input-field" type="number" id="settingsRate" placeholder="15.00" step="0.50">
+        </div>
+        <button class="btn btn-primary" onclick="saveSettings()">💾 Salva</button>
+      </div>
+
+      <div class="card" style="max-width:480px">
+        <div class="section-label" style="color:var(--red)">Zona pericolosa</div>
+        <p style="font-size:13px;color:var(--ink2);margin-bottom:14px">Elimina tutte le sessioni e i pagamenti del tuo account.</p>
+        <button class="btn btn-danger" onclick="clearData()">🗑 Elimina tutti i dati</button>
+      </div>
+    </div>
+
+  </main>
 </div>
 
-<div class="toast" id="toast"></div>
-
 <script>
-const API = "https://script.google.com/macros/s/AKfycbxJCsLxObm2vvaud7Xzv_0Lu4-Utidc7xH-XUXe0vqergkQLVchzTzkfl_kUHfn_8tmmA/exec";
+// ═══════════════════════════════════════════════════════════════════
+//  ██████╗ ██████╗ ███╗   ██╗███████╗██╗ ██████╗
+// ██╔════╝██╔═══██╗████╗  ██║██╔════╝██║██╔════╝
+// ██║     ██║   ██║██╔██╗ ██║█████╗  ██║██║  ███╗
+// ██║     ██║   ██║██║╚██╗██║██╔══╝  ██║██║   ██║
+// ╚██████╗╚██████╔╝██║ ╚████║██║     ██║╚██████╔╝
+//  ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝
+//
+//  ⬇️  MODIFICA SOLO QUESTA SEZIONE ⬇️
+// ═══════════════════════════════════════════════════════════════════
 
-let session = null; // { username, sheetName }
-let timerInterval = null;
-let timerStart = null;
+const CONFIG = {
+  // Copia l'ID dal tuo Google Sheet (dalla URL tra /d/ e /edit)
+  // Esempio: https://docs.google.com/spreadsheets/d/1ABC.../edit
+  SHEET_ID: 'IL_TUO_SHEET_ID_QUI',
+
+  // Vai su console.cloud.google.com → Crea progetto → Abilita Sheets API
+  // → Credenziali → Crea chiave API → incollala qui
+  API_KEY: 'LA_TUA_API_KEY_QUI',
+};
+
+// ═══════════════════════════════════════════════════════════════════
+//  FINE CONFIGURAZIONE — non toccare il resto
+// ═══════════════════════════════════════════════════════════════════
+
+const SHEETS_API = 'https://sheets.googleapis.com/v4/spreadsheets';
+const MONTHS_IT = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+const MONTHS_SHORT = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+
+// ── State ──────────────────────────────────────────────────────────
+let currentUser = null;   // { username, sheetName, hourlyRate }
+let sessions = [];        // { id, date, startTime, endTime, minutes, earned, note }
+let payments = [];        // { id, date, amount, method, note }
 let timerRunning = false;
-let entries = [];
-let payments = [];
-let hourlyRate = 0;
+let timerStart = null;    // Date object, restored from localStorage
+let timerInterval = null;
+let chartHours = null;
+let chartMoney = null;
 
-// ── API ───────────────────────────────────────────────
-async function api(data) {
-  const res = await fetch(API, {
-    method: "POST",
-    body: JSON.stringify(data),
-    headers: { "Content-Type": "text/plain" }
-  });
-  return res.json();
+// ── INIT ───────────────────────────────────────────────────────────
+window.addEventListener('load', async () => {
+  hideLoading();
+  if (!CONFIG.SHEET_ID || CONFIG.SHEET_ID === 'IL_TUO_SHEET_ID_QUI') {
+    document.getElementById('configBanner').classList.add('show');
+  }
+  document.getElementById('payDate').value = today();
+  showScreen('login');
+});
+
+function hideLoading() {
+  document.getElementById('loadingOverlay').style.display = 'none';
 }
 
-// ── LOGIN ─────────────────────────────────────────────
-async function doLogin() {
-  const username = document.getElementById("loginUser").value.trim();
-  const password = document.getElementById("loginPass").value;
-  const errEl = document.getElementById("loginError");
-  errEl.textContent = "";
-  if (!username || !password) { errEl.textContent = "Inserisci username e password."; return; }
-  try {
-    const r = await api({ action: "login", username, password });
-    if (r.ok) {
-      session = { username: r.username, sheetName: r.sheetName };
-      document.getElementById("loginScreen").style.display = "none";
-      document.getElementById("app").style.display = "block";
-      document.getElementById("userBadge").textContent = r.username[0].toUpperCase();
-      document.getElementById("userLabel").textContent = r.username;
-      document.getElementById("payDate").valueAsDate = new Date();
-      populateMonthSelects();
-      loadAll();
+function today() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function currentMonth() {
+  return today().substring(0, 7);
+}
+
+// ── TOAST ──────────────────────────────────────────────────────────
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast show ${type}`;
+  setTimeout(() => t.className = 'toast', 2800);
+}
+
+// ── SCREENS ────────────────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id + 'Screen').classList.add('active');
+}
+
+// ── GOOGLE SHEETS READ (public, API key only) ───────────────────────
+async function sheetsRead(range) {
+  const url = `${SHEETS_API}/${CONFIG.SHEET_ID}/values/${encodeURIComponent(range)}?key=${CONFIG.API_KEY}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Sheets error ${res.status}`);
+  const data = await res.json();
+  return data.values || [];
+}
+
+// ── GOOGLE SHEETS WRITE (uses fetch with API key — needs sheet public or script) ──
+// Since we can't use OAuth easily in a plain HTML file,
+// we use a Google Apps Script Web App as a proxy for writes.
+// For reads we use the Sheets API directly with API key.
+// The SCRIPT_URL below is optional — if not set, data is stored locally.
+async function sheetsAppend(sheetName, row) {
+  // Try Apps Script proxy if configured, else fall back to localStorage
+  if (CONFIG.SCRIPT_URL) {
+    const res = await fetch(CONFIG.SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'append', sheet: sheetName, row }),
+    });
+    if (!res.ok) throw new Error('Script error');
+  }
+  // Always save locally as backup
+  saveLocal();
+}
+
+// ── LOCAL STORAGE (always used as backup) ──────────────────────────
+function storageKey(suffix) {
+  return `wh_${currentUser.username}_${suffix}`;
+}
+
+function saveLocal() {
+  if (!currentUser) return;
+  localStorage.setItem(storageKey('sessions'), JSON.stringify(sessions));
+  localStorage.setItem(storageKey('payments'), JSON.stringify(payments));
+  localStorage.setItem(storageKey('rate'), currentUser.hourlyRate);
+}
+
+function loadLocal() {
+  sessions = JSON.parse(localStorage.getItem(storageKey('sessions')) || '[]');
+  payments = JSON.parse(localStorage.getItem(storageKey('payments')) || '[]');
+  const savedRate = localStorage.getItem(storageKey('rate'));
+  if (savedRate) currentUser.hourlyRate = parseFloat(savedRate);
+
+  // Ripristina timer attivo se era in corso prima della chiusura
+  const savedStart = localStorage.getItem(storageKey('timerStart'));
+  const savedNote  = localStorage.getItem(storageKey('timerNote')) || '';
+  if (savedStart) {
+    const parsed = new Date(savedStart);
+    if (!isNaN(parsed.getTime())) {
+      timerStart = parsed;
+      document.getElementById('timerNote').value = savedNote;
+      resumeTimer();
     } else {
-      errEl.textContent = r.error || "Credenziali errate.";
+      localStorage.removeItem(storageKey('timerStart'));
     }
-  } catch(e) {
-    errEl.textContent = "Errore di connessione.";
   }
 }
-document.addEventListener("keydown", e => { if(e.key==="Enter" && document.getElementById("loginScreen").style.display!=="none") doLogin(); });
 
+// ── LOGIN ──────────────────────────────────────────────────────────
+async function doLogin() {
+  const username = document.getElementById('loginUser').value.trim();
+  const password = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginError');
+  const btn = document.getElementById('loginBtn');
+
+  errEl.textContent = '';
+  if (!username || !password) { errEl.textContent = 'Inserisci utente e password.'; return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Accesso in corso...';
+
+  try {
+    // Read users from "Utenti" sheet (columns: Username, Password, SheetName)
+    let authenticated = false;
+    let sheetName = username; // fallback: sheet named as username
+
+    if (CONFIG.SHEET_ID && CONFIG.SHEET_ID !== 'IL_TUO_SHEET_ID_QUI' &&
+        CONFIG.API_KEY && CONFIG.API_KEY !== 'LA_TUA_API_KEY_QUI') {
+      try {
+        const rows = await sheetsRead('Utenti!A2:C100');
+        for (const row of rows) {
+          if (row[0]?.toLowerCase() === username.toLowerCase() && row[1] === password) {
+            authenticated = true;
+            sheetName = row[2] || username;
+            break;
+          }
+        }
+      } catch (e) {
+        // If Sheets not reachable, allow offline login with localStorage
+        const savedRate = localStorage.getItem(`wh_${username}_rate`);
+        if (savedRate) {
+          authenticated = true; // known user from localStorage
+          showToast('Modalità offline — dati locali', 'error');
+        }
+      }
+    } else {
+      // Dev mode: accept any user
+      authenticated = true;
+    }
+
+    if (!authenticated) {
+      errEl.textContent = 'Credenziali errate. Riprova.';
+      btn.disabled = false;
+      btn.textContent = 'Accedi';
+      return;
+    }
+
+    currentUser = { username, sheetName, hourlyRate: 15 };
+    loadLocal();
+    document.getElementById('sidebarUser').textContent = '→ ' + username;
+    document.getElementById('settingsRate').value = currentUser.hourlyRate;
+
+    showScreen('app');
+    showPage('timer');
+    updateSidebarBalance();
+    renderTodayStats();
+    populateMonthFilters();
+
+  } catch (e) {
+    errEl.textContent = 'Errore di connessione: ' + e.message;
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Accedi';
+}
+
+document.getElementById('loginPass').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+
+// ── LOGOUT ─────────────────────────────────────────────────────────
 function logout() {
-  session = null; entries = []; payments = []; hourlyRate = 0;
-  stopTimer(false);
-  document.getElementById("loginScreen").style.display = "flex";
-  document.getElementById("app").style.display = "none";
-  document.getElementById("loginUser").value = "";
-  document.getElementById("loginPass").value = "";
+  if (timerRunning) stopTimer();
+  currentUser = null;
+  sessions = [];
+  payments = [];
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+  showScreen('login');
 }
 
-// ── LOAD ALL ──────────────────────────────────────────
-async function loadAll() {
-  const [e, p, r] = await Promise.all([
-    api({ action: "getEntries", sheetName: session.sheetName }),
-    api({ action: "getPayments", sheetName: session.sheetName }),
-    api({ action: "getHourlyRate", sheetName: session.sheetName })
-  ]);
-  if (e.ok) entries = e.entries || [];
-  if (p.ok) payments = p.payments || [];
-  if (r.ok) {
-    hourlyRate = parseFloat(r.rate) || 0;
-    document.getElementById("rateInput").value = hourlyRate || "";
-    document.getElementById("rateDisplay").textContent = hourlyRate ? `Tariffa attuale: €${hourlyRate.toFixed(2)}/ora` : "Nessuna tariffa impostata";
-  }
-  renderRecent();
-  renderAnalytics();
-  renderPaymentsTable();
-  renderBalance();
-  updateTodayStats();
+// ── PAGE NAVIGATION ────────────────────────────────────────────────
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+  document.getElementById('page-' + name).style.display = 'block';
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+
+  if (name === 'sessions') renderSessions();
+  if (name === 'payments') renderPayments();
+  if (name === 'analytics') renderAnalytics();
+  if (name === 'settings') document.getElementById('settingsRate').value = currentUser.hourlyRate;
 }
 
-// ── TIMER ─────────────────────────────────────────────
+// ── TIMER ────────────────────────────────────────────────────────────────
 function toggleTimer() {
-  if (!timerRunning) startTimer(); else stopTimer(true);
+  if (!timerRunning) startTimer();
+  else stopTimer();
 }
 
 function startTimer() {
   timerRunning = true;
   timerStart = new Date();
-  const btn = document.getElementById("timerBtn");
-  btn.textContent = "⏹ Fine Lavoro";
-  btn.classList.replace("start","stop");
-  document.getElementById("timerDisplay").classList.add("running");
-  timerInterval = setInterval(updateTimerDisplay, 1000);
+  localStorage.setItem(storageKey('timerStart'), timerStart.toISOString());
+  localStorage.setItem(storageKey('timerNote'), '');
+  _activateTimerUI();
 }
 
-function stopTimer(save) {
-  if (!timerRunning && !timerInterval) return;
+function resumeTimer() {
+  timerRunning = true;
+  _activateTimerUI();
+}
+
+function _activateTimerUI() {
+  document.getElementById('timerBtn').className = 'btn-timer stop';
+  document.getElementById('timerBtn').innerHTML = '■ Fine lavoro';
+  document.getElementById('timerNoteWrap').style.display = 'block';
+  document.getElementById('timerStatus').innerHTML =
+    '<span class="status-dot pulse"></span> In corso — iniziato alle ' + formatTime(timerStart);
+  document.getElementById('timerDisplay').classList.add('running');
+
   clearInterval(timerInterval);
-  timerInterval = null;
-  const btn = document.getElementById("timerBtn");
-  btn.textContent = "▶ Inizio Lavoro";
-  btn.classList.replace("stop","start");
-  document.getElementById("timerDisplay").classList.remove("running");
-  document.getElementById("timerDisplay").textContent = "00:00:00";
+  timerInterval = setInterval(function() {
+    var secs = Math.floor((Date.now() - timerStart) / 1000);
+    document.getElementById('timerDisplay').textContent = formatSecs(secs);
+    var earning = (secs / 3600) * currentUser.hourlyRate;
+    document.getElementById('timerEarning').textContent = '💶 €' + earning.toFixed(2) + ' guadagnati';
+    localStorage.setItem(storageKey('timerNote'), document.getElementById('timerNote').value);
+  }, 1000);
+}
 
-  if (save && timerStart) {
-    const end = new Date();
-    const durMin = Math.round((end - timerStart) / 60000);
-    const dateStr = timerStart.toLocaleDateString("it-IT");
-    const startStr = timerStart.toLocaleTimeString("it-IT", { hour:"2-digit", minute:"2-digit" });
-    const endStr = end.toLocaleTimeString("it-IT", { hour:"2-digit", minute:"2-digit" });
-    api({ action: "addEntry", sheetName: session.sheetName, date: dateStr, startTime: startStr, endTime: endStr, durationMinutes: durMin })
-      .then(() => { showToast(`Sessione salvata: ${Math.floor(durMin/60)}h ${durMin%60}m`); loadAll(); });
-  }
+async function stopTimer() {
+  clearInterval(timerInterval);
   timerRunning = false;
+  var endTime = new Date();
+  var mins = Math.round((endTime - timerStart) / 60000);
+
+  localStorage.removeItem(storageKey('timerStart'));
+  localStorage.removeItem(storageKey('timerNote'));
+
+  document.getElementById('timerBtn').className = 'btn-timer start';
+  document.getElementById('timerBtn').innerHTML = '▶ Inizio lavoro';
+  document.getElementById('timerNoteWrap').style.display = 'none';
+  document.getElementById('timerDisplay').classList.remove('running');
+  document.getElementById('timerDisplay').textContent = '00:00:00';
+  document.getElementById('timerEarning').textContent = '';
+  document.getElementById('timerStatus').textContent = '';
+
+  if (mins < 1) { showToast('Sessione troppo breve (< 1 min)', 'error'); return; }
+
+  var note = document.getElementById('timerNote').value.trim();
+  document.getElementById('timerNote').value = '';
+
+  var session = {
+    id: Date.now().toString(),
+    date: timerStart.toISOString().split('T')[0],
+    startTime: formatTime(timerStart),
+    endTime: formatTime(endTime),
+    minutes: mins,
+    earned: ((mins / 60) * currentUser.hourlyRate).toFixed(2),
+    note: note,
+  };
+
   timerStart = null;
+  sessions.unshift(session);
+  saveLocal();
+  updateSidebarBalance();
+  renderTodayStats();
+  showToast('✅ ' + Math.floor(mins/60) + 'h ' + (mins%60) + 'm salvati — €' + session.earned);
 }
-
-function updateTimerDisplay() {
-  if (!timerStart) return;
-  const elapsed = Math.floor((new Date() - timerStart) / 1000);
-  const h = String(Math.floor(elapsed/3600)).padStart(2,"0");
-  const m = String(Math.floor((elapsed%3600)/60)).padStart(2,"0");
-  const s = String(elapsed%60).padStart(2,"0");
-  document.getElementById("timerDisplay").textContent = `${h}:${m}:${s}`;
-  updateTodayStats();
-}
-
-// ── STATS ─────────────────────────────────────────────
-function updateTodayStats() {
-  const today = new Date().toLocaleDateString("it-IT");
-  const todayEntries = entries.filter(e => e.date === today);
-  let totalMin = todayEntries.reduce((a,e) => a + (parseInt(e.durationMinutes)||0), 0);
-  if (timerRunning && timerStart) totalMin += Math.floor((new Date()-timerStart)/60000);
-  const earned = (totalMin/60)*hourlyRate;
-  document.getElementById("todayHours").textContent = `${Math.floor(totalMin/60)}h ${totalMin%60}m`;
-  document.getElementById("todayEarned").textContent = `€ ${earned.toFixed(2)}`;
-}
-
-// ── RATE ──────────────────────────────────────────────
-async function saveRate() {
-  const rate = parseFloat(document.getElementById("rateInput").value);
-  if (isNaN(rate) || rate < 0) { showToast("Inserisci una tariffa valida","error"); return; }
-  await api({ action: "setHourlyRate", sheetName: session.sheetName, rate });
-  hourlyRate = rate;
-  document.getElementById("rateDisplay").textContent = `Tariffa attuale: €${rate.toFixed(2)}/ora`;
-  showToast("Tariffa salvata!");
-  updateTodayStats();
-  renderAnalytics();
-  renderBalance();
-}
-
-// ── RECENT ENTRIES ────────────────────────────────────
-function renderRecent() {
-  const el = document.getElementById("recentEntries");
-  const recent = [...entries].reverse().slice(0, 7);
-  if (!recent.length) { el.innerHTML = '<div class="empty">Nessuna sessione registrata ancora.</div>'; return; }
-  el.innerHTML = `<div class="table-wrap"><table>
-    <thead><tr><th>Data</th><th>Inizio</th><th>Fine</th><th>Durata</th><th>Guadagno</th></tr></thead>
-    <tbody>${recent.map(e => {
-      const dur = parseInt(e.durationMinutes)||0;
-      const earn = ((dur/60)*hourlyRate).toFixed(2);
-      return `<tr><td>${e.date}</td><td>${e.startTime}</td><td>${e.endTime}</td>
-        <td>${Math.floor(dur/60)}h ${dur%60}m</td><td>€ ${earn}</td></tr>`;
-    }).join("")}</tbody></table></div>`;
-}
-
-// ── ANALYTICS ─────────────────────────────────────────
-function populateMonthSelects() {
-  const months = [];
-  const now = new Date();
-  for (let i = 0; i < 12; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
-    months.push({ val: `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`, label: d.toLocaleDateString("it-IT",{month:"long",year:"numeric"}) });
-  }
-  ["monthSelect","balanceMonthSelect"].forEach(id => {
-    const sel = document.getElementById(id);
-    sel.innerHTML = months.map(m => `<option value="${m.val}">${m.label}</option>`).join("");
-  });
-}
-
-function renderAnalytics() {
-  const sel = document.getElementById("monthSelect");
-  if (!sel) return;
-  const [year, month] = sel.value.split("-").map(Number);
-  const filtered = entries.filter(e => {
-    const parts = e.date.split("/");
-    if (parts.length < 3) return false;
-    return parseInt(parts[2]) === year && parseInt(parts[1]) === month;
-  });
-
-  const totalMin = filtered.reduce((a,e) => a+(parseInt(e.durationMinutes)||0), 0);
-  const totalEarned = (totalMin/60)*hourlyRate;
-  const days = new Set(filtered.map(e=>e.date)).size;
-  const avgMin = days ? Math.round(totalMin/days) : 0;
-
-  document.getElementById("analyticsStats").innerHTML = `
-    <div class="stat-card"><div class="val">${Math.floor(totalMin/60)}h ${totalMin%60}m</div><div class="lbl">Ore Totali</div></div>
-    <div class="stat-card"><div class="val">€ ${totalEarned.toFixed(2)}</div><div class="lbl">Guadagno Lordo</div></div>
-    <div class="stat-card"><div class="val">${days}</div><div class="lbl">Giorni Lavorati</div></div>
-    <div class="stat-card"><div class="val">${Math.floor(avgMin/60)}h ${avgMin%60}m</div><div class="lbl">Media Giornaliera</div></div>
-  `;
-
-  // Bar chart per giorno
-  const daysInMonth = new Date(year, month, 0).getDate();
-  const byDay = {};
-  filtered.forEach(e => {
-    const parts = e.date.split("/");
-    const d = parseInt(parts[0]);
-    byDay[d] = (byDay[d]||0) + (parseInt(e.durationMinutes)||0);
-  });
-  const maxMin = Math.max(1, ...Object.values(byDay));
-  let bars = "";
-  for (let d = 1; d <= daysInMonth; d++) {
-    const min = byDay[d] || 0;
-    const pct = (min/maxMin)*100;
-    const label = `${Math.floor(min/60)}h${min%60}m`;
-    bars += `<div class="bar-wrap">
-      <div class="bar" style="height:${pct}%" data-val="${label}"></div>
-      <div class="bar-lbl">${d}</div>
-    </div>`;
-  }
-  document.getElementById("barChart").innerHTML = bars;
-
-  // Full table
-  if (!filtered.length) {
-    document.getElementById("fullTable").innerHTML = '<div class="empty">Nessuna sessione in questo mese.</div>';
-    return;
-  }
-  document.getElementById("fullTable").innerHTML = `<table>
-    <thead><tr><th>Data</th><th>Inizio</th><th>Fine</th><th>Durata</th><th>Guadagno</th></tr></thead>
-    <tbody>${filtered.map(e => {
-      const dur = parseInt(e.durationMinutes)||0;
-      return `<tr><td>${e.date}</td><td>${e.startTime}</td><td>${e.endTime}</td>
-        <td>${Math.floor(dur/60)}h ${dur%60}m</td><td>€ ${((dur/60)*hourlyRate).toFixed(2)}</td></tr>`;
-    }).join("")}</tbody></table>`;
-}
-
-// ── PAYMENTS ──────────────────────────────────────────
-async function addPayment() {
-  const date = document.getElementById("payDate").value;
-  const amount = parseFloat(document.getElementById("payAmount").value);
-  const note = document.getElementById("payNote").value;
-  if (!date || isNaN(amount)) { showToast("Data e importo obbligatori","error"); return; }
-  const formatted = new Date(date).toLocaleDateString("it-IT");
-  await api({ action: "addPayment", sheetName: session.sheetName, date: formatted, amount, note });
-  document.getElementById("payAmount").value = "";
-  document.getElementById("payNote").value = "";
-  const r = await api({ action: "getPayments", sheetName: session.sheetName });
-  if (r.ok) payments = r.payments || [];
-  renderPaymentsTable();
-  renderBalance();
-  showToast("Pagamento aggiunto!");
-}
-
-function renderPaymentsTable() {
-  const el = document.getElementById("paymentsTable");
-  if (!payments.length) { el.innerHTML = '<div class="empty">Nessun pagamento registrato.</div>'; return; }
-  const total = payments.reduce((a,p) => a+(parseFloat(p.amount)||0), 0);
-  el.innerHTML = `<div class="table-wrap"><table>
-    <thead><tr><th>Data</th><th>Importo</th><th>Nota</th></tr></thead>
-    <tbody>${[...payments].reverse().map(p =>
-      `<tr><td>${p.date}</td><td>€ ${parseFloat(p.amount).toFixed(2)}</td><td>${p.note||"—"}</td></tr>`
-    ).join("")}
-    <tr><td colspan="2" style="font-weight:700;color:var(--accent)">Totale ricevuto</td><td style="font-weight:700;color:var(--accent)">€ ${total.toFixed(2)}</td></tr>
-    </tbody></table></div>`;
-}
-
-// ── BALANCE ───────────────────────────────────────────
-function renderBalance() {
-  const sel = document.getElementById("balanceMonthSelect");
-  if (!sel) return;
-  const [year, month] = sel.value.split("-").map(Number);
-
-  const filteredE = entries.filter(e => {
-    const parts = e.date.split("/");
-    return parts.length >= 3 && parseInt(parts[2])===year && parseInt(parts[1])===month;
-  });
-  const filteredP = payments.filter(p => {
-    const parts = p.date.split("/");
-    return parts.length >= 3 && parseInt(parts[2])===year && parseInt(parts[1])===month;
-  });
-
-  const totalMin = filteredE.reduce((a,e) => a+(parseInt(e.durationMinutes)||0), 0);
-  const earned = (totalMin/60)*hourlyRate;
-  const received = filteredP.reduce((a,p) => a+(parseFloat(p.amount)||0), 0);
-  const diff = received - earned;
-
-  let boxClass = "neutral", emoji = "➖", msg = "In pari";
-  if (diff > 0.01) { boxClass="positive"; emoji="✅"; msg="Sei in credito"; }
-  else if (diff < -0.01) { boxClass="negative"; emoji="⚠️"; msg="Sei in debito"; }
-
-  document.getElementById("balanceContent").innerHTML = `
-    <div class="balance-box ${boxClass}">
-      <div class="balance-emoji">${emoji}</div>
-      <div class="balance-amount">${diff >= 0 ? "+" : ""}€ ${diff.toFixed(2)}</div>
-      <div class="balance-label">${msg}</div>
-    </div>
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="val" style="color:var(--warn)">€ ${earned.toFixed(2)}</div>
-        <div class="lbl">Dovevi ricevere</div>
-      </div>
-      <div class="stat-card">
-        <div class="val" style="color:var(--accent)">€ ${received.toFixed(2)}</div>
-        <div class="lbl">Hai ricevuto</div>
-      </div>
-      <div class="stat-card">
-        <div class="val">${Math.floor(totalMin/60)}h ${totalMin%60}m</div>
-        <div class="lbl">Ore lavorate</div>
-      </div>
-    </div>
-  `;
-}
-
-// ── EXPORT PDF ────────────────────────────────────────
-function exportPDF() {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  const sel = document.getElementById("monthSelect");
-  const [year, month] = sel.value.split("-").map(Number);
-  const filtered = entries.filter(e => {
-    const p = e.date.split("/");
-    return p.length>=3 && parseInt(p[2])===year && parseInt(p[1])===month;
-  });
-  const monthLabel = sel.options[sel.selectedIndex].text;
-
-  doc.setFontSize(18); doc.text(`WorkHours — ${session.username}`, 14, 20);
-  doc.setFontSize(12); doc.text(monthLabel, 14, 30);
-  const totalMin = filtered.reduce((a,e)=>a+(parseInt(e.durationMinutes)||0),0);
-  doc.text(`Ore totali: ${Math.floor(totalMin/60)}h ${totalMin%60}m   Guadagno: € ${((totalMin/60)*hourlyRate).toFixed(2)}`, 14, 40);
-
-  let y = 52;
-  doc.setFontSize(10);
-  doc.text("Data", 14, y); doc.text("Inizio", 50, y); doc.text("Fine", 80, y); doc.text("Durata", 110, y); doc.text("€", 150, y);
-  y += 6; doc.line(14, y, 196, y); y += 6;
-
-  filtered.forEach(e => {
-    const dur = parseInt(e.durationMinutes)||0;
-    doc.text(e.date, 14, y);
-    doc.text(e.startTime, 50, y);
-    doc.text(e.endTime, 80, y);
-    doc.text(`${Math.floor(dur/60)}h ${dur%60}m`, 110, y);
-    doc.text(`€ ${((dur/60)*hourlyRate).toFixed(2)}`, 150, y);
-    y += 8;
-    if (y > 270) { doc.addPage(); y = 20; }
-  });
-
-  doc.save(`WorkHours_${session.username}_${sel.value}.pdf`);
-}
-
-// ── EXPORT EXCEL ──────────────────────────────────────
-function exportExcel() {
-  const sel = document.getElementById("monthSelect");
-  const [year, month] = sel.value.split("-").map(Number);
-  const filtered = entries.filter(e => {
-    const p = e.date.split("/");
-    return p.length>=3 && parseInt(p[2])===year && parseInt(p[1])===month;
-  });
-
-  const data = [["Data","Inizio","Fine","Durata (min)","Ore","Guadagno €"]];
-  filtered.forEach(e => {
-    const dur = parseInt(e.durationMinutes)||0;
-    data.push([e.date, e.startTime, e.endTime, dur, +(dur/60).toFixed(2), +((dur/60)*hourlyRate).toFixed(2)]);
-  });
-  const totalMin = filtered.reduce((a,e)=>a+(parseInt(e.durationMinutes)||0),0);
-  data.push(["TOTALE","","","",+(totalMin/60).toFixed(2),+((totalMin/60)*hourlyRate).toFixed(2)]);
-
-  const ws = XLSX.utils.aoa_to_sheet(data);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Ore lavoro");
-  XLSX.writeFile(wb, `WorkHours_${session.username}_${sel.value}.xlsx`);
-}
-
-// ── TABS ──────────────────────────────────────────────
-function switchTab(name, btn) {
-  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-  document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
-  btn.classList.add("active");
-  document.getElementById("panel-"+name).classList.add("active");
-  if (name==="analytics") renderAnalytics();
-  if (name==="balance") renderBalance();
-}
-
-// ── TOAST ─────────────────────────────────────────────
-function showToast(msg) {
-  const t = document.getElementById("toast");
-  t.textContent = msg;
-  t.classList.add("show");
-  setTimeout(() => t.classList.remove("show"), 2800);
-}
-</script>
-</body>
-</html>
